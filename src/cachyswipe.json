@@ -1,0 +1,13 @@
+{
+    "KPlugin": {
+        "Id": "cachyswipe",
+        "Name": "Cachy Swipe",
+        "Description": "Change windows with touchpad swipe gestures using KDE's native window switcher",
+        "Description[es]": "Cambia de ventana con gestos del touchpad usando el conmutador nativo de KDE",
+        "Category": "Window Management",
+        "Icon": "preferences-desktop-gestures",
+        "License": "MIT",
+        "Version": "0.3.2",
+        "EnabledByDefault": false
+    }
+}

@@ -1,0 +1,40 @@
+# Cachy Swipe
+
+> Cachy Swipe is an MIT-licensed native KWin effect for switching between open windows with three-finger touchpad swipes on KDE Plasma Wayland. It uses KDE's native Alt+Tab switcher and supports KWin 6.8.x.
+
+Version: 0.3.2. Implementation: C++20 with Qt 6 and KWin. Installation instructions target CachyOS and Arch Linux. This file is a concise documentation index; it is not a crawler configuration file.
+
+## Documentation
+
+- [README](README.md): Project facts, compatibility, installation, activation, sensitivity settings, FAQ, removal and tests.
+- [Publishing guide](docs/PUBLISHING.md): GitHub description, repository topics and search-discovery guidance.
+- [License](LICENSE): MIT license.
+
+## Behavior and compatibility
+
+- Horizontal three-finger swipes select open windows; four fingers can be configured.
+- The selected window is activated when the gesture ends normally.
+- Escape or gesture cancellation closes the switcher without activating another window.
+- Selection follows travel distance with a stability margin and hard stops; it never wraps at the ends.
+- Window order and appearance come from KDE's native TabBox. No Alt+Tab keypresses are synthesized.
+- Supported environment: KDE Plasma on Wayland with KWin 6.8.x. Other KWin minor versions need a private-ABI compatibility review.
+- GNOME, Hyprland and X11 are not supported.
+- Two-finger scrolling and virtual-desktop switching are outside this effect's scope.
+
+## Configuration
+
+Settings file: ~/.config/kwinrc. Group: [Effect-cachyswipe].
+
+- SwipeDistance: default 120; range 80–4000 KWin gesture units. Lower means more sensitive.
+- FingerCount: default 3; supported values 3 and 4.
+- ReverseDirection: default true; false reverses selection direction.
+- Existing explicit settings override these defaults.
+- Reload with: qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.reconfigureEffect cachyswipe
+
+## Implementation references
+
+- [Build configuration](CMakeLists.txt): Version, dependencies and KWin 6.8.x requirement.
+- [Effect implementation](src/cachyswipe.cpp): Configuration, input handling and native TabBox control.
+- [Gesture math](src/swipe_index.h): Proportional selection, stability margin and end stops.
+- [TabBox bridge](src/tabbox_bridge.h): Private KWin interface used by the effect.
+- [Integration checks](tests/integration-session.sh): Defaults, overrides, selection, confirmation, cancellation and boundary checks.
