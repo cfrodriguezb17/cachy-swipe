@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(cachy_swipe VERSION 0.3.2 LANGUAGES CXX)
+project(cachy_swipe VERSION 0.4.0 LANGUAGES CXX)
 
 # KWin's Qt 6 dependencies include both versioned and unversioned Qt helpers.
 # Keep those helpers on Qt 6 if Qt 5 was discovered earlier in the CMake run.
@@ -17,6 +17,10 @@ if(BUILD_TESTING)
     add_executable(gesture_test tests/gesture_test.cpp)
     target_include_directories(gesture_test PRIVATE src)
     add_test(NAME gesture_test COMMAND gesture_test)
+    find_package(Python3 QUIET COMPONENTS Interpreter)
+    if(Python3_FOUND)
+        add_test(NAME auto_rebuild_test COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/auto_rebuild_test.py)
+    endif()
 endif()
 
 if(BUILD_KWIN_PLUGIN)
@@ -35,6 +39,7 @@ if(BUILD_KWIN_PLUGIN)
     kcoreaddons_add_plugin(cachyswipe SOURCES src/cachyswipe.cpp
         INSTALL_NAMESPACE "kwin/effects/plugins")
     target_link_libraries(cachyswipe PRIVATE KWin::kwin)
+    install(DIRECTORY tabbox/cachy-swipe-grid DESTINATION ${KDE_INSTALL_DATADIR}/kwin/tabbox)
     if(CACHY_SWIPE_INTEGRATION_TESTING)
         target_compile_definitions(cachyswipe PRIVATE CACHY_SWIPE_TESTING)
         add_executable(window_fixture tests/window_fixture.cpp)

@@ -39,14 +39,15 @@ assert s['gestureActive'] and not s['shown'] and not s['visible'] and not s['hor
 print('temblor: nada visible: pasado')
 PY
 
-# --- Un gesto vertical no muestra nada ------------------------------------
+# --- Un gesto vertical abre la cuadrícula incluso con una sola fila --------
 debug test-vertical > /dev/null
 state
 python3 - <<'PY'
 import json, os
 s = json.load(open(os.environ['CACHY_TEST_RUNTIME'] + '/state.json'))
-assert s['gestureActive'] and not s['shown'] and not s['horizontal'], s
-print('vertical: descartado sin UI: pasado')
+assert s['gestureActive'] and s['shown'] and s['visible'] and not s['horizontal'], s
+assert s['index'] == 0 and s['row'] == 0 and s['gridNavigation'], s
+print('vertical: cuadrícula visible y tope de una sola fila: pasado')
 PY
 debug test-cancel > /dev/null
 
@@ -239,6 +240,17 @@ s = json.load(open(os.environ['CACHY_TEST_RUNTIME'] + '/state.json'))
 assert s['distance'] == 120 and s['fingers'] == 3 and s['reverse'] is True, s
 assert not s['gestureActive'] and not s['shown'] and not s['visible'], s
 print('sin ajustes explícitos: predeterminados restaurados: pasado')
+PY
+
+# A different visual layout must not keep invisible four-column navigation.
+kwriteconfig6 --file kwinrc --group TabBox --key LayoutName big_icons
+qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.reconfigureEffect cachyswipe
+state
+python3 - <<'PY'
+import json, os
+s = json.load(open(os.environ['CACHY_TEST_RUNTIME'] + '/state.json'))
+assert not s['gridNavigation'], s
+print('otro diseño nativo: navegación horizontal compatible: pasado')
 PY
 
 qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.unloadEffect cachyswipe

@@ -2,7 +2,7 @@
 
 > Cachy Swipe is an MIT-licensed native KWin effect for switching between open windows with three-finger touchpad swipes on KDE Plasma Wayland. It uses KDE's native Alt+Tab switcher and supports KWin 6.8.x.
 
-Version: 0.3.2. Implementation: C++20 with Qt 6 and KWin. Installation instructions target CachyOS and Arch Linux. This file is a concise documentation index; it is not a crawler configuration file.
+Version: 0.4.0. Implementation: C++20 with Qt 6 and KWin. Installation instructions target CachyOS and Arch Linux. This file is a concise documentation index; it is not a crawler configuration file.
 
 ## Documentation
 
@@ -12,10 +12,10 @@ Version: 0.3.2. Implementation: C++20 with Qt 6 and KWin. Installation instructi
 
 ## Behavior and compatibility
 
-- Horizontal three-finger swipes select open windows; four fingers can be configured.
+- Three-finger swipes select windows in a grid of up to four columns: left/right changes column, up/down changes row. Four fingers can be configured.
 - The selected window is activated when the gesture ends normally.
 - Escape or gesture cancellation closes the switcher without activating another window.
-- Selection follows travel distance with a stability margin and hard stops; it never wraps at the ends.
+- Selection follows the two-dimensional finger trace and the centered rows, with a stability margin and hard stops on each row and column; it never wraps or selects empty cells.
 - Window order and appearance come from KDE's native TabBox. No Alt+Tab keypresses are synthesized.
 - Supported environment: KDE Plasma on Wayland with KWin 6.8.x. Other KWin minor versions need a private-ABI compatibility review.
 - GNOME, Hyprland and X11 are not supported.
@@ -27,7 +27,9 @@ Settings file: ~/.config/kwinrc. Group: [Effect-cachyswipe].
 
 - SwipeDistance: default 120; range 80–4000 KWin gesture units. Lower means more sensitive.
 - FingerCount: default 3; supported values 3 and 4.
-- ReverseDirection: default true; false reverses selection direction.
+- ReverseDirection: default true; false reverses horizontal movement. Vertical movement is unaffected.
+- GridNavigation: default true; use with the included Cachy Swipe Grid layout. False restores horizontal list navigation.
+- The Cachy Swipe Grid layout is used for normal keyboard Alt+Tab too.
 - Existing explicit settings override these defaults.
 - Reload with: qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.reconfigureEffect cachyswipe
 
@@ -38,3 +40,6 @@ Settings file: ~/.config/kwinrc. Group: [Effect-cachyswipe].
 - [Gesture math](src/swipe_index.h): Proportional selection, stability margin and end stops.
 - [TabBox bridge](src/tabbox_bridge.h): Private KWin interface used by the effect.
 - [Integration checks](tests/integration-session.sh): Defaults, overrides, selection, confirmation, cancellation and boundary checks.
+- [Automatic rebuild](scripts/auto_rebuild.py): Opt-in per-user timer rebuilds and tests after system dependency changes, then activates only against a matching running KWin. Setup requires one new login; no sudo or automatic source downloads.
+
+- [Four-column switcher layout](tabbox/cachy-swipe-grid/contents/ui/main.qml): Native TabBox grid with classic large icons, scrolling and keyboard navigation.

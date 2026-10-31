@@ -8,7 +8,7 @@ Suggested repository name: `cachy-swipe`.
 
 Paste this into GitHub's **About → Description** field:
 
-> Three-finger touchpad window switching for KDE Plasma Wayland. Native KWin 6.8.x effect for CachyOS and Arch Linux, using the Alt+Tab switcher with adjustable sensitivity and hard stops.
+> Three-finger window switching for KDE Plasma Wayland. Native KWin 6.8.x effect with a four-column Alt+Tab grid, two-axis gestures, adjustable sensitivity and automatic rebuilds for CachyOS and Arch Linux.
 
 ## Repository topics
 
@@ -23,7 +23,7 @@ GitHub topics classify repositories by purpose and technology and help users fin
 ## Public documentation and AI search
 
 1. Publish the source files as a public repository, with `README.md` at its root. Extract the source ZIP first; uploading only the ZIP leaves the README inside an archive rather than as the repository's landing page.
-2. Set the description and topics above. Publish a `v0.3.2` release once that version is available in the repository.
+2. Set the description and topics above. Publish a `v0.4.0` release once that version is available in the repository.
 3. Keep the summary, compatibility table, FAQ and configuration defaults synchronized with the implementation. Preserve relative links so the docs also work in clones.
 4. If a documentation website is added later, link it from the repository's Website field and use the real repository URL in that site. No repository URL or hosted documentation site is assumed by this source package.
 

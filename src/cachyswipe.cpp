@@ -25,6 +25,11 @@
 #include <QScopedValueRollback>
 #include <algorithm>
 #include <cmath>
+#ifdef CACHY_SWIPE_TESTING
+#include <QGuiApplication>
+#include <QQuickItem>
+#include <QQuickWindow>
+#endif
 
 namespace KWin
 {
@@ -93,6 +98,9 @@ public:
         const double distance = config.readEntry("SwipeDistance", 120.0);
         m_distance = std::isfinite(distance) ? std::clamp(distance, 80.0, 4000.0) : 120.0;
         m_reverse = config.readEntry("ReverseDirection", true);
+        const KConfigGroup tabBoxConfig(effects->config(), QStringLiteral("TabBox"));
+        m_gridNavigation = config.readEntry("GridNavigation", true)
+            && tabBoxConfig.readEntry("LayoutName", QStringLiteral("breeze")) == QStringLiteral("cachy-swipe-grid");
     }
 
     bool swipeGestureBegin(PointerSwipeGestureBeginEvent *event) override
@@ -130,7 +138,7 @@ public:
             m_lastGesture = QStringLiteral("ignored: <2 windows");
             return false;
         }
-        if (!m_swipe.begin(event->fingerCount, m_fingers, m_distance, m_reverse)) {
+        if (!m_swipe.begin(event->fingerCount, m_fingers, m_distance, m_reverse, m_gridNavigation ? 4 : 0)) {
             m_lastGesture = QStringLiteral("ignored: config");
             return false;
         }
@@ -149,8 +157,8 @@ public:
         }
         m_swipe.update(event->delta.x(), event->delta.y());
         if (!m_swipe.attached()) {
-            if (!m_swipe.horizontal()) {
-                return true; // aún ambiguo o vertical
+            if (!m_swipe.ready()) {
+                return true; // aún ambiguo o descartado
             }
             if (!showSwitcher()) {
                 m_swipe.finish();
@@ -200,6 +208,17 @@ public:
         } else if (parameter == QStringLiteral("test-vertical")) {
             PointerSwipeGestureUpdateEvent event{QPointF(2, m_distance * 0.6), {}};
             self->swipeGestureUpdate(&event);
+        } else if (parameter.startsWith(QStringLiteral("test-move:"))) {
+            const auto values = parameter.mid(10).split(QLatin1Char(','));
+            if (values.size() == 2) {
+                bool xOk, yOk;
+                const double x = values[0].toDouble(&xOk);
+                const double y = values[1].toDouble(&yOk);
+                if (xOk && yOk) {
+                    PointerSwipeGestureUpdateEvent event{QPointF(x * m_distance, y * m_distance), {}};
+                    self->swipeGestureUpdate(&event);
+                }
+            }
         } else if (parameter == QStringLiteral("test-end")) {
             PointerSwipeGestureEndEvent event{};
             self->swipeGestureEnd(&event);
@@ -215,11 +234,15 @@ public:
 #else
         Q_UNUSED(parameter)
 #endif
-        const QJsonObject state{
+        QJsonObject state{
             {QStringLiteral("gestureActive"), m_ownedStream},
             {QStringLiteral("shown"), m_shown},
             {QStringLiteral("attached"), m_swipe.attached()},
             {QStringLiteral("horizontal"), m_swipe.horizontal()},
+            {QStringLiteral("gridNavigation"), m_gridNavigation},
+            {QStringLiteral("columns"), m_swipe.columns()},
+            {QStringLiteral("row"), m_swipe.row()},
+            {QStringLiteral("column"), m_swipe.column()},
             {QStringLiteral("base"), m_swipe.base()},
             {QStringLiteral("index"), m_swipe.index()},
             {QStringLiteral("steps"), m_swipe.steps()},
@@ -233,6 +256,32 @@ public:
             {QStringLiteral("activeCaption"), effects->activeWindow() ? effects->activeWindow()->caption() : QString()},
             {QStringLiteral("selectedCaption"), tabBoxSelectionCaption()},
         };
+#ifdef CACHY_SWIPE_TESTING
+        for (auto *window : QGuiApplication::allWindows()) {
+            auto *quickWindow = qobject_cast<QQuickWindow *>(window);
+            if (!quickWindow) continue;
+            // PlasmaQuick::Dialog reparents the visual item, while its QObject
+            // parent can remain in the switcher's QML component hierarchy.
+            auto *panel = window->property("mainItem").value<QQuickItem *>();
+            auto *grid = panel ? panel->findChild<QObject *>(QStringLiteral("cachy-swipe-grid-view")) : nullptr;
+            if (panel && grid) {
+                if (parameter == QStringLiteral("test-screenshot")) {
+                    quickWindow->grabWindow().save(qEnvironmentVariable("CACHY_TEST_RUNTIME") + QStringLiteral("/grid.png"));
+                }
+                state.insert(QStringLiteral("uiColumns"), panel->property("columns").toInt());
+                state.insert(QStringLiteral("uiRows"), panel->property("rows").toInt());
+                state.insert(QStringLiteral("uiIndex"), grid->property("currentIndex").toInt());
+                if (auto *item = grid->property("currentItem").value<QQuickItem *>()) {
+                    auto *icon = item->objectName() == QStringLiteral("cachy-swipe-grid-icon")
+                        ? item : item->findChild<QQuickItem *>(QStringLiteral("cachy-swipe-grid-icon"));
+                    if (icon) {
+                        state.insert(QStringLiteral("uiIconReady"), icon->property("valid").toBool());
+                        state.insert(QStringLiteral("uiIconWidth"), icon->width());
+                    }
+                }
+            }
+        }
+#endif
         return QString::fromUtf8(QJsonDocument(state).toJson(QJsonDocument::Compact));
     }
 
@@ -322,7 +371,7 @@ private:
         m_origin.clear();
         m_swipe.cancel();
         if (wasOwned && !wasShown) {
-            m_lastGesture = QStringLiteral("no-op (vertical or declined)");
+            m_lastGesture = QStringLiteral("no-op (declined)");
         }
         if (!wasOwned || !wasShown) {
             return;
@@ -359,6 +408,7 @@ private:
     int m_fingers = 3;
     double m_distance = 120;
     bool m_reverse = true;
+    bool m_gridNavigation = true;
     bool m_ownedStream = false;
     bool m_shown = false;
     bool m_tabBoxSignaledVisible = false;

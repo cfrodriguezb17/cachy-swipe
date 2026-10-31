@@ -7,7 +7,7 @@
         "Category": "Window Management",
         "Icon": "preferences-desktop-gestures",
         "License": "MIT",
-        "Version": "0.3.2",
+        "Version": "0.4.0",
         "EnabledByDefault": false
     }
 }

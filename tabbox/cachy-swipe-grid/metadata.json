@@ -1,0 +1,12 @@
+{
+    "KPackageStructure": "KWin/WindowSwitcher",
+    "KPlugin": {
+        "Id": "cachy-swipe-grid",
+        "Name": "Cachy Swipe Grid",
+        "Description": "Classic large window icons in four columns for two-dimensional touchpad navigation",
+        "Icon": "preferences-system-windows-switcher-thumbnail-grid",
+        "License": "MIT",
+        "Version": "0.4.0"
+    },
+    "X-Plasma-API": "declarativeappletscript"
+}

@@ -104,6 +104,106 @@ int main()
     check(!again.begin(3, 3, -5), "Negative distance is rejected");
     check(!again.begin(4, 3, 600), "A different finger count is rejected");
 
+    // Four-column navigation uses both axes within a single gesture.
+    SwipeIndex grid;
+    check(grid.begin(3, 3, 120, true, 4), "Grid gesture begins");
+    grid.update(72, 0);
+    check(grid.attach(12, 0) && grid.index() == 1, "Initial horizontal movement selects column one");
+    check(grid.update(0, 120) == 5, "Down moves to the same column in the next row");
+    check(grid.update(-120, 0) == 4, "Left moves within the current row");
+    check(grid.update(0, -120) == 0, "Up returns to the first row");
+    check(grid.update(12000, 0) == 3, "Right stops at column four without wrapping");
+    check(grid.update(12000, 0) == 3, "Horizontal edge accumulates no travel");
+    check(grid.update(-72, 0) == 2, "Reversing immediately leaves the right edge");
+    check(grid.update(0, 12000) == 10, "Down stops at the final row");
+    check(grid.update(0, 12000) == 10, "Bottom edge accumulates no travel");
+    check(grid.update(0, -72) == 6, "Reversing immediately leaves the bottom edge");
+    check(grid.update(0, -12000) == 2, "Up stops at the first row");
+    check(grid.update(0, 72) == 6, "Reversing immediately leaves the top edge");
+
+    SwipeIndex shortRow;
+    shortRow.begin(3, 3, 120, true, 4);
+    shortRow.update(12000, 0);
+    check(shortRow.attach(6, 0) && shortRow.index() == 3, "Four full columns above a partial row");
+    check(shortRow.update(0, 120) == 5, "Partial row selects its nearest real window");
+    check(shortRow.update(0, -120) == 2, "Returning up follows the centered window's visual column");
+    check(shortRow.update(0, 120) == 5, "Return to partial row");
+    check(shortRow.update(12000, 0) == 5, "Cannot enter an empty column");
+    check(shortRow.update(-72, 0) == 4, "Partial right edge has no hidden travel");
+    check(shortRow.update(-12000, 0) == 4, "Left stops at the beginning of the current row");
+    check(shortRow.update(72, 0) == 5, "Reversing immediately leaves the partial row's left edge");
+
+    for (int base : {4, 5}) {
+        SwipeIndex centered;
+        centered.begin(3, 3, 120, true, 4);
+        centered.update(0, -72);
+        centered.attach(6, base);
+        check(centered.index() == base - 3, "Up from a centered lower row selects the window visually above");
+    }
+
+    for (int direction : {-1, 1}) {
+        SwipeIndex diagonal;
+        diagonal.begin(3, 3, 120, true, 4);
+        diagonal.update(0, -8);
+        diagonal.attach(6, 4);
+        check(diagonal.update(direction * 120, -120) == 1 + direction,
+              "Diagonal upward movement follows the horizontal component of the trace");
+        SwipeIndex curved;
+        curved.begin(3, 3, 120, true, 4);
+        curved.update(0, -8);
+        curved.attach(6, 4);
+        for (int i = 0; i < 10; ++i) curved.update(direction * 12, -12);
+        check(curved.index() == diagonal.index(), "A diagonal split into small events follows the same target");
+    }
+
+    for (int count : {5, 7}) {
+        for (int direction : {-1, 1}) {
+            SwipeIndex oddRow;
+            oddRow.begin(3, 3, 120, true, 4);
+            oddRow.update(0, -8);
+            oddRow.attach(count, 4);
+            const int expected = (count == 5 ? 1 : 0) + (direction > 0 ? 1 : 0);
+            check(oddRow.update(direction * 24, -120) == expected,
+                  "An odd centered row uses the trace to choose between the two nearest upper windows");
+        }
+    }
+
+    SwipeIndex verticalGrid;
+    verticalGrid.begin(3, 3, 120, true, 4);
+    verticalGrid.update(0, 72);
+    check(verticalGrid.ready() && !verticalGrid.horizontal(), "Vertical movement opens grid navigation");
+    check(verticalGrid.attach(12, 0) && verticalGrid.index() == 4, "Initial down selects the second row");
+    check(verticalGrid.update(30, 30) == 4, "Small diagonal movement stays within the stability margins");
+    check(verticalGrid.update(72, 0) == 5, "Gesture changes from vertical to horizontal without lifting");
+    verticalGrid.cancel();
+    check(!verticalGrid.active() && !verticalGrid.ready() && verticalGrid.columns() == 0, "Cancel clears grid state");
+
+    SwipeIndex reversedGrid;
+    reversedGrid.begin(3, 3, 120, false, 4);
+    reversedGrid.update(-72, 0);
+    check(reversedGrid.attach(12, 0) && reversedGrid.index() == 1, "Horizontal reversal remains configurable");
+    check(reversedGrid.update(0, 120) == 5, "Horizontal reversal never inverts up and down");
+
+    SwipeIndex rowJitter;
+    rowJitter.begin(3, 3, 120, true, 4);
+    rowJitter.update(0, 60);
+    check(rowJitter.attach(12, 0) && rowJitter.index() == 0, "Half a vertical step stays within the margin");
+    check(rowJitter.update(0, 1) == 0, "Vertical midpoint jitter keeps the original row");
+    check(rowJitter.update(0, 10) == 4, "Intentional vertical movement changes row");
+    check(rowJitter.update(0, -10) == 4, "Row hysteresis prevents flicker");
+    check(rowJitter.update(0, -10) == 0, "Intentional upward reversal restores first row");
+
+    for (int count : {2, 3, 4, 5, 6, 7, 8, 12, 13}) {
+        SwipeIndex bounded;
+        bounded.begin(3, 3, 120, true, 4);
+        bounded.update(0, 8);
+        bounded.attach(count, 0);
+        for (int i = 0; i < 100; ++i) {
+            bounded.update((i % 3 - 1) * 600, (i % 5 - 2) * 120);
+            check(bounded.index() >= 0 && bounded.index() < count, "All grid shapes select only existing windows");
+        }
+    }
+
     std::cout << "swipe_index: all checks passed\n";
     return 0;
 }
